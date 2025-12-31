@@ -1,28 +1,33 @@
 import 'package:flutter/material.dart';
 
 void main() {
-  runApp(myApps());
+  runApp(const MyApps());
 }
 
-class myApps extends StatelessWidget {
+class MyApps extends StatelessWidget {
+  const MyApps({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false,
+      debugShowCheckedModeBanner: false, // Hilangkan tulisan DEBUG
       home: Scaffold(
         appBar: AppBar(
-          title: Text(
-            "My Apps",
+          backgroundColor: Colors.blue, // Warna AppBar
+          title: const Text(
+            'My Apps',
             style: TextStyle(
-              color: Colors.white, // warna title
+              color: Colors.white, // Warna title
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
             ),
           ),
-          backgroundColor: Colors.blue,
+          centerTitle: true, // Title di tengah
         ),
-        body: Center(
+        body: const Center(
           child: Text(
-            "Hello World",
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            'Hello World',
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
           ),
         ),
       ),
