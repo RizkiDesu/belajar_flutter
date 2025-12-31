@@ -14,9 +14,10 @@ class MyApps extends StatelessWidget {
       home: Scaffold(
         appBar: AppBar(
           backgroundColor: Colors.blue, // Warna AppBar
-          title: const Text(
+          title: Text(
             'My Apps',
             style: TextStyle(
+              fontFamily: 'GoogleSans',
               color: Colors.white, // Warna title
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -24,10 +25,24 @@ class MyApps extends StatelessWidget {
           ),
           centerTitle: true, // Title di tengah
         ),
-        body: const Center(
+        body: Center(
           child: Text(
-            'Hello World',
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            'Hello World, This apps using Flutter Framework, and Flutter is a framework for building beautiful, natively compiled applications for mobile, web, and desktop from a single codebase.',
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              backgroundColor: Colors.amber,
+              color: Colors.black,
+              fontSize: 30,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 10,
+              fontFamily: 'GoogleSans',
+              decoration: TextDecoration.lineThrough,
+              decorationStyle: TextDecorationStyle.wavy,
+              decorationColor: Colors.white,
+              decorationThickness: 2,
+            ),
           ),
         ),
       ),
