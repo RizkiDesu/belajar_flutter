@@ -2,13 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 void main() {
   runApp(const MyApp());
 }
 
+/// =====================
+/// APP ROOT
+/// =====================
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -20,6 +22,13 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+
+/// =====================
+/// KONSTANTA
+/// =====================
+const String guruPin = '1234';
+const String prefGuruMode = 'guru_mode';
+const String prefLastUrl = 'last_form_url';
 
 /// =====================
 /// HALAMAN AWAL
@@ -65,7 +74,6 @@ class _StartPageState extends State<StartPage> {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 20),
-
             TextField(
               controller: linkController,
               decoration: const InputDecoration(
@@ -74,7 +82,6 @@ class _StartPageState extends State<StartPage> {
               ),
             ),
             const SizedBox(height: 15),
-
             ElevatedButton(
               onPressed: () {
                 if (linkController.text.isNotEmpty) {
@@ -83,10 +90,8 @@ class _StartPageState extends State<StartPage> {
               },
               child: const Text('MULAI UJIAN'),
             ),
-
             const SizedBox(height: 20),
             const Divider(),
-
             ElevatedButton.icon(
               onPressed: openScanner,
               icon: const Icon(Icons.qr_code_scanner),
@@ -100,7 +105,7 @@ class _StartPageState extends State<StartPage> {
 }
 
 /// =====================
-/// HALAMAN QR SCANNER
+/// QR SCANNER
 /// =====================
 class QRScanPage extends StatelessWidget {
   final Function(String) onResult;
@@ -109,10 +114,10 @@ class QRScanPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Scan QR Form')),
+      appBar: AppBar(title: const Text('Scan QR')),
       body: MobileScanner(
         onDetect: (barcode) {
-          final String? code = barcode.barcodes.first.rawValue;
+          final code = barcode.barcodes.first.rawValue;
           if (code != null) {
             Navigator.pop(context);
             onResult(code);
@@ -136,25 +141,52 @@ class ExamPage extends StatefulWidget {
 
 class _ExamPageState extends State<ExamPage> {
   static const MethodChannel platform = MethodChannel('kiosk_mode');
-  static const String guruPin = '1234';
 
   WebViewController? controller;
+  bool isGuru = false;
 
   @override
   void initState() {
     super.initState();
-    platform.invokeMethod('startKiosk');
-    _initWebView();
+    _initState();
   }
 
-  void _initWebView() {
+  Future<void> _initState() async {
+    final prefs = await SharedPreferences.getInstance();
+    isGuru = prefs.getBool(prefGuruMode) ?? false;
+
+    if (!isGuru) {
+      await platform.invokeMethod('startKiosk'); // 🔒 SISWA
+    }
+
     controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..loadRequest(Uri.parse(widget.formUrl));
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onNavigationRequest: (request) async {
+            if (isGuru) {
+              await prefs.setString(prefLastUrl, request.url);
+            }
+            return NavigationDecision.navigate;
+          },
+        ),
+      );
+
+    if (isGuru && prefs.containsKey(prefLastUrl)) {
+      await controller!.loadRequest(
+        Uri.parse(prefs.getString(prefLastUrl)!),
+      );
+    } else {
+      await prefs.remove(prefLastUrl);
+      await controller!.loadRequest(Uri.parse(widget.formUrl));
+    }
+
     setState(() {});
   }
 
-  /// 🔑 PIN GURU
+  /// =====================
+  /// PIN GURU
+  /// =====================
   void bukaGuru() {
     final pin = TextEditingController();
     showDialog(
@@ -169,20 +201,28 @@ class _ExamPageState extends State<ExamPage> {
         ),
         actions: [
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               if (pin.text == guruPin) {
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setBool(prefGuruMode, true);
+
+                isGuru = true;
+                Navigator.pop(context);
+
+                // 🔓 GURU BEBAS
                 platform.invokeMethod('stopKiosk');
-                SystemNavigator.pop();
               }
             },
             child: const Text('BUKA'),
-          )
+          ),
         ],
       ),
     );
   }
 
-  /// ✅ SET SELESAI
+  /// =====================
+  /// SET SELESAI (SISWA)
+  /// =====================
   void setSelesai() {
     showDialog(
       context: context,
@@ -197,8 +237,9 @@ class _ExamPageState extends State<ExamPage> {
           ),
           TextButton(
             onPressed: () async {
-              await platform.invokeMethod('stopKiosk');
-              SystemNavigator.pop();
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.clear(); // ❌ RESET TOTAL
+              await platform.invokeMethod('exitApp');
             },
             child: const Text('SELESAI'),
           ),
@@ -230,5 +271,3 @@ class _ExamPageState extends State<ExamPage> {
     );
   }
 }
-
-
