@@ -26,9 +26,9 @@ class MyApp extends StatelessWidget {
 /// =====================
 /// KONSTANTA
 /// =====================
-const String guruPin = '1234';
+const String guruPin      = '1234';
 const String prefGuruMode = 'guru_mode';
-const String prefLastUrl = 'last_form_url';
+const String prefLastUrl  = 'last_form_url';
 
 /// =====================
 /// HALAMAN AWAL
@@ -153,12 +153,12 @@ class _ExamPageState extends State<ExamPage> {
 
   Future<void> _initState() async {
     final prefs = await SharedPreferences.getInstance();
-    isGuru = prefs.getBool(prefGuruMode) ?? false;
+    // isGuru = prefs.getBool(prefGuruMode) ?? false;
 
-    if (!isGuru) {
-      await platform.invokeMethod('startKiosk'); // 🔒 SISWA
-    }
-
+    // if (!isGuru) {
+    //   await platform.invokeMethod('startKiosk'); // 🔒 SISWA
+    // }
+    await platform.invokeMethod('startKiosk');
     controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setNavigationDelegate(
