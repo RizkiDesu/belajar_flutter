@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const MyApp());
 }
 
@@ -24,14 +25,14 @@ class MyApp extends StatelessWidget {
 }
 
 /// =====================
-/// KONSTANTA
+/// CONSTANTS
 /// =====================
-const String guruPin      = '1234';
-const String prefGuruMode = 'guru_mode';
-const String prefLastUrl  = 'last_form_url';
+const String teacherPin = '202512';
+const String prefTeacherMode = 'teacher_mode';
+const String prefLastUrl = 'last_form_url';
 
 /// =====================
-/// HALAMAN AWAL
+/// START PAGE
 /// =====================
 class StartPage extends StatefulWidget {
   const StartPage({super.key});
@@ -42,6 +43,12 @@ class StartPage extends StatefulWidget {
 
 class _StartPageState extends State<StartPage> {
   final TextEditingController linkController = TextEditingController();
+
+  @override
+  void dispose() {
+    linkController.dispose();
+    super.dispose();
+  }
 
   void startExam(String url) {
     Navigator.pushReplacement(
@@ -56,48 +63,133 @@ class _StartPageState extends State<StartPage> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => QRScanPage(onResult: startExam),
+        builder: (_) => QRScanPage(
+          onResult: (value) {
+            setState(() => linkController.text = value);
+            startExam(value);
+          },
+        ),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final isValid = linkController.text.trim().isNotEmpty;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('UJIAN ONLINE')),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            const Text(
-              'Masukkan Link Google Form\natau Scan QR dari Guru',
-              textAlign: TextAlign.center,
+      backgroundColor: const Color(0xFFF5F6FA),
+      appBar: AppBar(
+        centerTitle: true,
+        elevation: 0,
+        title: const Text(
+          'ONLINE EXAM',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+      ),
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Card(
+            elevation: 2,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
             ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: linkController,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: 'https://forms.gle/...',
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  /// LOGO
+                  Image.asset('assets/icon/exam.png', height: 90),
+
+                  const SizedBox(height: 16),
+
+                  const Text(
+                    'ONLINE EXAM',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  const Text(
+                    'Enter the Google Form link\nor scan QR code from the teacher',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: Colors.black54,
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  /// INPUT LINK
+                  TextField(
+                    controller: linkController,
+                    keyboardType: TextInputType.url,
+                    onChanged: (_) => setState(() {}),
+                    decoration: InputDecoration(
+                      hintText: 'https://forms.gle/...',
+                      prefixIcon: const Icon(Icons.link),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  /// START BUTTON
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton(
+                      onPressed: isValid
+                          ? () => startExam(linkController.text.trim())
+                          : null,
+                      child: const Text(
+                        'START EXAM',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  /// DIVIDER
+                  const Row(
+                    children: [
+                      Expanded(child: Divider()),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 8),
+                        child: Text('OR'),
+                      ),
+                      Expanded(child: Divider()),
+                    ],
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  /// SCAN QR BUTTON
+                  SizedBox(
+                    width: double.infinity,
+                    height: 45,
+                    child: OutlinedButton.icon(
+                      onPressed: openScanner,
+                      icon: const Icon(Icons.qr_code_scanner),
+                      label: const Text('SCAN QR CODE'),
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 15),
-            ElevatedButton(
-              onPressed: () {
-                if (linkController.text.isNotEmpty) {
-                  startExam(linkController.text);
-                }
-              },
-              child: const Text('MULAI UJIAN'),
-            ),
-            const SizedBox(height: 20),
-            const Divider(),
-            ElevatedButton.icon(
-              onPressed: openScanner,
-              icon: const Icon(Icons.qr_code_scanner),
-              label: const Text('SCAN QR'),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -107,20 +199,30 @@ class _StartPageState extends State<StartPage> {
 /// =====================
 /// QR SCANNER
 /// =====================
-class QRScanPage extends StatelessWidget {
+class QRScanPage extends StatefulWidget {
   final Function(String) onResult;
   const QRScanPage({super.key, required this.onResult});
+
+  @override
+  State<QRScanPage> createState() => _QRScanPageState();
+}
+
+class _QRScanPageState extends State<QRScanPage> {
+  bool scanned = false;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Scan QR')),
       body: MobileScanner(
-        onDetect: (barcode) {
-          final code = barcode.barcodes.first.rawValue;
+        onDetect: (capture) {
+          if (scanned) return;
+
+          final code = capture.barcodes.first.rawValue;
           if (code != null) {
+            scanned = true;
             Navigator.pop(context);
-            onResult(code);
+            widget.onResult(code);
           }
         },
       ),
@@ -129,7 +231,7 @@ class QRScanPage extends StatelessWidget {
 }
 
 /// =====================
-/// HALAMAN UJIAN (KIOSK)
+/// EXAM PAGE (KIOSK)
 /// =====================
 class ExamPage extends StatefulWidget {
   final String formUrl;
@@ -143,28 +245,26 @@ class _ExamPageState extends State<ExamPage> {
   static const MethodChannel platform = MethodChannel('kiosk_mode');
 
   WebViewController? controller;
-  bool isGuru = false;
+  bool isTeacher = false;
 
   @override
   void initState() {
     super.initState();
-    _initState();
+    _init();
   }
 
-  Future<void> _initState() async {
+  Future<void> _init() async {
     final prefs = await SharedPreferences.getInstance();
-    // isGuru = prefs.getBool(prefGuruMode) ?? false;
+    isTeacher = prefs.getBool(prefTeacherMode) ?? false;
 
-    // if (!isGuru) {
-    //   await platform.invokeMethod('startKiosk'); // 🔒 SISWA
-    // }
     await platform.invokeMethod('startKiosk');
+
     controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setNavigationDelegate(
         NavigationDelegate(
           onNavigationRequest: (request) async {
-            if (isGuru) {
+            if (isTeacher) {
               await prefs.setString(prefLastUrl, request.url);
             }
             return NavigationDecision.navigate;
@@ -172,10 +272,8 @@ class _ExamPageState extends State<ExamPage> {
         ),
       );
 
-    if (isGuru && prefs.containsKey(prefLastUrl)) {
-      await controller!.loadRequest(
-        Uri.parse(prefs.getString(prefLastUrl)!),
-      );
+    if (isTeacher && prefs.containsKey(prefLastUrl)) {
+      await controller!.loadRequest(Uri.parse(prefs.getString(prefLastUrl)!));
     } else {
       await prefs.remove(prefLastUrl);
       await controller!.loadRequest(Uri.parse(widget.formUrl));
@@ -185,15 +283,16 @@ class _ExamPageState extends State<ExamPage> {
   }
 
   /// =====================
-  /// PIN GURU
+  /// TEACHER PIN
   /// =====================
-  void bukaGuru() {
+  void unlockTeacher() {
     final pin = TextEditingController();
+
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (_) => AlertDialog(
-        title: const Text('PIN Guru'),
+        title: const Text('Teacher PIN'),
         content: TextField(
           controller: pin,
           obscureText: true,
@@ -202,18 +301,17 @@ class _ExamPageState extends State<ExamPage> {
         actions: [
           TextButton(
             onPressed: () async {
-              if (pin.text == guruPin) {
+              if (pin.text == teacherPin) {
                 final prefs = await SharedPreferences.getInstance();
-                await prefs.setBool(prefGuruMode, true);
+                await prefs.setBool(prefTeacherMode, true);
+                isTeacher = true;
 
-                isGuru = true;
+                await platform.invokeMethod('stopKiosk');
+
                 Navigator.pop(context);
-
-                // 🔓 GURU BEBAS
-                platform.invokeMethod('stopKiosk');
               }
             },
-            child: const Text('BUKA'),
+            child: const Text('Unlock'),
           ),
         ],
       ),
@@ -221,52 +319,116 @@ class _ExamPageState extends State<ExamPage> {
   }
 
   /// =====================
-  /// SET SELESAI (SISWA)
+  /// FINISH EXAM
   /// =====================
-  void setSelesai() {
+  void finishExam() {
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (_) => AlertDialog(
-        title: const Text('Selesai Ujian?'),
-        content: const Text('Aplikasi akan ditutup'),
+        title: const Text('Exam Finished'),
+        content: const Text('Application will exit'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('BATAL'),
+            child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () async {
               final prefs = await SharedPreferences.getInstance();
-              await prefs.clear(); // ❌ RESET TOTAL
+              await prefs.clear();
+
+              await platform.invokeMethod('stopKiosk');
+
+              await SystemChrome.setPreferredOrientations([
+                DeviceOrientation.portraitUp,
+                DeviceOrientation.portraitDown,
+                DeviceOrientation.landscapeLeft,
+                DeviceOrientation.landscapeRight,
+              ]);
+
               await platform.invokeMethod('exitApp');
             },
-            child: const Text('SELESAI'),
+            child: const Text('Done'),
           ),
         ],
       ),
     );
   }
 
+  /// =====================
+  /// BUILD EXAM PAGE – ENGLISH & LIGHT
+  /// =====================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        title: const Text('UJIAN'),
-        automaticallyImplyLeading: false,
+        backgroundColor: Colors.blue.shade700,
+        elevation: 2,
+        centerTitle: true,
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 8.0),
+          child: Image.asset(
+            'assets/icon/exam.png',
+            height: 32,
+          ),
+        ),
+        title: const Text(
+          'Online Exam',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+            color: Colors.white,
+          ),
+        ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.check_circle),
-            onPressed: setSelesai,
+          // Teacher Unlock
+          TextButton.icon(
+            onPressed: unlockTeacher,
+            icon: const Icon(Icons.lock_open_outlined,
+                size: 20, color: Colors.white),
+            label: const Text(
+              'Unlock',
+              style: TextStyle(
+                  fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+            ),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              backgroundColor: Colors.green.shade600,
+            ),
           ),
-          IconButton(
-            icon: const Icon(Icons.lock_open),
-            onPressed: bukaGuru,
+          const SizedBox(width: 6),
+          // Finish Button
+          TextButton.icon(
+            onPressed: finishExam,
+            icon: const Icon(Icons.check_circle_outline,
+                size: 20, color: Colors.white),
+            label: const Text(
+              'Finish',
+              style: TextStyle(
+                  fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+            ),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              backgroundColor: Colors.redAccent.shade400,
+            ),
           ),
+          const SizedBox(width: 6),
         ],
       ),
       body: controller == null
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation(Colors.blue),
+              ),
+            )
           : WebViewWidget(controller: controller!),
     );
   }

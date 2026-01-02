@@ -1,6 +1,6 @@
 {
-    "name": "belajar_flutter",
-    "short_name": "belajar_flutter",
+    "name": "Online Exam",
+    "short_name": "online_exam",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
