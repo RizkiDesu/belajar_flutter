@@ -5,6 +5,7 @@
     <application
         android:label="belajar_flutter"
         android:name="${applicationName}"
+        android:lockTaskMode="if_whitelisted"
         android:icon="@mipmap/ic_launcher">
         <activity
             android:name=".MainActivity"
